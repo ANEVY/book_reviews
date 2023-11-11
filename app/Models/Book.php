@@ -18,26 +18,49 @@ class Book extends Model
     public function scopeTitle(Builder $query, string $title){   
         return $query->where("title","like","%".$title."%");
     }
+    public function scopeLastest(Builder $query){
+        return $query->latest();
+    }
     public function scopePopular(Builder $query,$from = null , $to = null){
         return $query->withCount(["reviews"=>function(Builder $q) use($from ,$to)  {
-            if ($from && !$to) {
-                $q->where("created_at",">=",$from);
-            }else if( !$from && $to) {
-                $q->where("created_at","<=",$to);
-            }else if( $from && $to) {
-                $q->whereBetween("created_at", [$from,$to]);
-                // $q->where("created_at",">=",$from);
-                // $q->where("created_at","<=",$to);
-            }
+           $this->dateRangeFilter($q,$from, $to);
             
-            
+        }])->orderBy("reviews_count","desc");
+    }
+    private function dateRangeFilter(Builder $query,$from = null , $to = null){
+        if ($from && !$to) {
+            $query->where("created_at",">=",$from);
+        }else if( !$from && $to) {
+            $query->where("created_at","<=",$to);
+        }else if( $from && $to) {
+            $query->whereBetween("created_at", [$from,$to]);
+
         }
-            
-        ])
-        ->orderBy("reviews_count","desc");
     }
     public function scopeHighestRated(Builder $query){
         return $query->withAvg("reviews","rating")
         ->orderBy("reviews_avg_rating","desc");
+    }
+    public function scopePopularLastMonth(Builder $query){
+        //Get last month from current date
+        $currentDate = now();
+        $lastMonthDate = now()->subMonth();
+
+        //get the start and end date of the last month
+        //do a where query to get books between the start date and endates
+        return $query->popular($lastMonthDate, $currentDate);
+
+
+    }
+    public function scopePopularLast6Months(Builder $query){
+        //Get last month from current date
+        $currentDate = now();
+        $last6MonthsDate = now()->subMonths(6);
+
+        //get the start and end date of the last month
+        //do a where query to get books between the start date and endates
+        return $query->popular($last6MonthsDate, $currentDate);
+
+
     }
 }           
